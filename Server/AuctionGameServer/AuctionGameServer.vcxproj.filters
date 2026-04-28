@@ -28,6 +28,9 @@
     <ClCompile Include="SerializationBuffer.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="TLSPool.h">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EchoServer.h">

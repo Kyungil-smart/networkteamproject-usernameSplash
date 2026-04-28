@@ -186,10 +186,13 @@ bool IServer::SendPacket(const SessionID sessionId, SPacket* packet)
 	unsigned short idx = Session::GetIndexNumFromId(sessionId);
 	Session* session = _sessionArray[idx];
 
-	EchoPacketHeader header;
+	NetPacketHeader header;
+	header._code = PACKET_CODE;
 	header._len = (short)packet->GetPayloadSize();
+	header._randKey = rand() % 256;
 
-	packet->SetHeaderData(&header, sizeof(header));
+	packet->Encode(header, packet->GetPayloadPtr());
+	packet->SetHeaderData(&header, PACKET_HEADER_SIZE);
 
 	AcquireSRWLockExclusive(&session->_sendBufferLock);
 	session->_sendBuffer.Enqueue(packet->GetBufferPtr(), sizeof(header) + header._len);
@@ -368,36 +371,50 @@ void IServer::HandleRecv(Session* session, int recvByte)
 
 	while (bufferSize > 0)
 	{
-		if (bufferSize <= sizeof(EchoPacketHeader))
+		if (bufferSize <= PACKET_HEADER_SIZE)
 		{
 			break;
 		}
 
-		EchoPacketHeader header;
-		session->_recvBuffer.Peek((char*)&header, sizeof(header));
+		NetPacketHeader header;
+		session->_recvBuffer.Peek((char*)&header, PACKET_HEADER_SIZE);
+
+		if (header._code != PACKET_CODE)
+		{
+			wprintf(L"# Recv is Failed : Wrong Packet Code\n");
+			return;
+		}
 
 		if (bufferSize < (sizeof(header) + header._len))
 		{
 			break;
 		}
 
-		session->_recvBuffer.Dequeue(sizeof(header));
+		session->_recvBuffer.Dequeue(PACKET_HEADER_SIZE);
 
-		SPacket packet;
-		session->_recvBuffer.Peek((char*)packet.GetPayloadPtr(), header._len);
+		SPacket* packet = SPacket::Alloc();
+		session->_recvBuffer.Peek((char*)packet->GetPayloadPtr(), header._len);
 		session->_recvBuffer.Dequeue(header._len);
 
-		packet.MoveWritePos(header._len);
+		packet->MoveWritePos(header._len);
+
+		if (packet->Decode(header, packet->GetPayloadPtr()) == false)
+		{
+			DisconnectSession(session->_sessionId);
+			wprintf(L"# Recv is Failed : Decode Failed\n");
+			return;
+		}
 
 		bufferSize = bufferSize - (sizeof(header) + header._len);
 
 		cnt++;
 
-		OnRecv(session->_sessionId, &packet);
+		OnRecv(session->_sessionId, packet);
+
+		SPacket::Free(packet);
 	}
 
 	session->_lastRecvTime = timeGetTime();
-
 	session->_recvCnt += cnt;
 
 	InterlockedAdd(&_recvCnt, cnt);

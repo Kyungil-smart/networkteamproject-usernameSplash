@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="EchoServer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TLSPool.h" />
     <ClCompile Include="RingBuffer.cpp" />
     <ClCompile Include="SerializationBuffer.cpp" />
     <ClCompile Include="Server.cpp" />
