@@ -2,6 +2,9 @@
 
 #include <Windows.h>
 
+#include "TLSPool.h"
+#include "Protocol.h"
+
 // Packet Managed by Serialized Buffer.
 class SPacket
 {
@@ -14,10 +17,37 @@ public:
 		BUFFER_MAX_SIZE = 10,
 	};
 
+protected:
 	SPacket();
 	SPacket(size_t capacity);
 	SPacket(const SPacket& other);
 	virtual ~SPacket(void);
+
+public:
+	static SPacket* Alloc()
+	{
+		SPacket* packet = s_packetPool.Alloc();
+		packet->Clear();
+
+		return packet;
+	}
+
+	static bool Free(SPacket* packet)
+	{
+		if (InterlockedDecrement(&packet->_useCount) == 0)
+		{
+			s_packetPool.Free(packet);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	inline void AddUseCount(long useCount)
+	{
+		InterlockedAdd(&_useCount, useCount);
+	}
 
 	void Clear(void);
 	size_t Capacity(void);
@@ -33,13 +63,16 @@ public:
 	size_t MoveReadPos(size_t size);
 	size_t MoveWritePos(size_t size);
 
-	void SetHeaderData(void* header, size_t size);
-	void GetHeaderData(void* outHeader);
+	size_t SetHeaderData(void* header, size_t size);
 	size_t GetHeaderData(void* outHeader, size_t size);
 
 	void SetPayloadData(void* data, size_t size);
-	void GetPayloadData(void* outData);
 	size_t GetPayloadData(void* outData, size_t size);
+
+	bool IsHeaderEmpty(void);
+
+	bool Encode(NetPacketHeader& header, char* payload);
+	bool Decode(NetPacketHeader& header, char* payload);
 
 public:
 	SPacket& operator=(SPacket& rhs);
@@ -80,4 +113,12 @@ protected:
 	size_t mCapacity;
 	size_t mHeaderSize;
 	size_t mSize;
+
+	volatile long _useCount = 0;
+	volatile long _isEncoded = 0;
+
+	static ObjectPool<SPacket> s_packetPool;
+
+
+	friend ObjectPool<SPacket>;
 };

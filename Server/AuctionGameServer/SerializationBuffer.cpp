@@ -4,31 +4,31 @@
 #include <cstring>
 
 SPacket::SPacket()
-	: mBuffer(new char[BUFFER_DEFAULT_SIZE])
-	, mPayloadPtr(mBuffer + BUFFER_HEADER_MAX_SIZE)
+	: mBuffer(new char[PACKET_SIZE])
+	, mPayloadPtr(mBuffer + PACKET_HEADER_SIZE)
 	, mReadPos(mPayloadPtr)
 	, mWritePos(mPayloadPtr)
-	, mCapacity(BUFFER_DEFAULT_SIZE)
+	, mCapacity(PACKET_SIZE)
 	, mHeaderSize(0)
-	, mSize(BUFFER_HEADER_MAX_SIZE)
+	, mSize(PACKET_HEADER_SIZE)
 {
 }
 
 SPacket::SPacket(size_t capacity)
 	: mHeaderSize(0)
-	, mSize(BUFFER_HEADER_MAX_SIZE)
+	, mSize(PACKET_HEADER_SIZE)
 {
-	if (capacity < BUFFER_MINIMUM_SIZE)
+	if (capacity < PACKET_SIZE)
 	{
-		capacity = BUFFER_MINIMUM_SIZE;
+		capacity = PACKET_SIZE;
 	}
-	else if (capacity > BUFFER_MAX_SIZE)
+	else if (capacity > PACKET_MAX_SIZE)
 	{
-		capacity = BUFFER_MAX_SIZE;
+		capacity = PACKET_MAX_SIZE;
 	}
 
 	mBuffer = new char[capacity];
-	mPayloadPtr = mBuffer + BUFFER_HEADER_MAX_SIZE;
+	mPayloadPtr = mBuffer + PACKET_HEADER_SIZE;
 	mReadPos = mPayloadPtr;
 	mWritePos = mPayloadPtr;
 	mCapacity = capacity;
@@ -36,32 +36,36 @@ SPacket::SPacket(size_t capacity)
 
 SPacket::SPacket(const SPacket& other)
 	: mBuffer(new char[other.mCapacity])
-	, mPayloadPtr(mBuffer + BUFFER_HEADER_MAX_SIZE)
+	, mPayloadPtr(mBuffer + PACKET_HEADER_SIZE)
 	, mReadPos(mPayloadPtr)
 	, mWritePos(mPayloadPtr + other.mSize)
 	, mCapacity(other.mCapacity)
 	, mSize(other.mSize)
+	, mHeaderSize(other.mHeaderSize)
 {
 	memcpy(mBuffer, other.mBuffer, mSize);
 }
 
 SPacket::~SPacket(void)
 {
-	delete mBuffer;
+	delete[] mBuffer;
 	mBuffer = nullptr;
 }
 
 void SPacket::Clear(void)
 {
-	mSize = BUFFER_HEADER_MAX_SIZE;
+	mSize = PACKET_HEADER_SIZE;
 	mReadPos = mPayloadPtr;
 	mWritePos = mPayloadPtr;
+	mHeaderSize = 0;
+	_isEncoded = 0;
+
 	return;
 }
 
 size_t SPacket::Capacity(void)
 {
-	return mCapacity - BUFFER_HEADER_MAX_SIZE;
+	return mCapacity - PACKET_HEADER_SIZE;
 }
 
 size_t SPacket::Size(void)
@@ -76,7 +80,7 @@ size_t SPacket::GetHeaderSize(void)
 
 size_t SPacket::GetPayloadSize(void)
 {
-	return mSize - BUFFER_HEADER_MAX_SIZE;
+	return mSize - PACKET_HEADER_SIZE;
 }
 
 bool SPacket::Reserve(size_t capacity)
@@ -88,7 +92,7 @@ bool SPacket::Reserve(size_t capacity)
 		return false;
 	}
 
-	if (capacity > BUFFER_MAX_SIZE)
+	if (capacity > PACKET_MAX_SIZE)
 	{
 		return false;
 	}
@@ -99,10 +103,10 @@ bool SPacket::Reserve(size_t capacity)
 
 	mCapacity = capacity;
 
-	delete mBuffer;
+	delete[] mBuffer;
 
 	mBuffer = newBuffer;
-	mPayloadPtr = mBuffer + BUFFER_HEADER_MAX_SIZE;
+	mPayloadPtr = mBuffer + PACKET_HEADER_SIZE;
 	mReadPos = mPayloadPtr;
 	mWritePos = mPayloadPtr + mSize;
 
@@ -147,14 +151,12 @@ size_t SPacket::MoveWritePos(size_t size)
 	return size;
 }
 
-void SPacket::SetHeaderData(void* header, size_t size)
+size_t SPacket::SetHeaderData(void* header, size_t size)
 {
 	memcpy(mBuffer, header, size);
-}
+	mHeaderSize = size;
 
-void SPacket::GetHeaderData(void* outHeader)
-{
-	memcpy(outHeader, mBuffer, mHeaderSize);
+	return mHeaderSize;
 }
 
 size_t SPacket::GetHeaderData(void* outHeader, size_t size)
@@ -171,26 +173,87 @@ size_t SPacket::GetHeaderData(void* outHeader, size_t size)
 
 void SPacket::SetPayloadData(void* data, size_t size)
 {
-	memcpy(mPayloadPtr, data, size);
-}
-
-void SPacket::GetPayloadData(void* outData)
-{
-	memcpy(outData, mPayloadPtr, (mSize - BUFFER_HEADER_MAX_SIZE));
+	memcpy(mWritePos, data, size);
 }
 
 size_t SPacket::GetPayloadData(void* outData, size_t size)
 {
-	if (size > mSize - BUFFER_HEADER_MAX_SIZE)
+	if (size > mSize - PACKET_HEADER_SIZE)
 	{
-		size = mSize - BUFFER_HEADER_MAX_SIZE;
+		size = mSize - PACKET_HEADER_SIZE;
 	}
 
-	memcpy(outData, mPayloadPtr, size);
+	memcpy(outData, mReadPos, size);
 
 	return size;
 }
 
+bool SPacket::IsHeaderEmpty(void)
+{
+	return mHeaderSize == 0;
+}
+
+bool SPacket::Encode(NetPacketHeader& header, char* payload)
+{
+	if (InterlockedExchange(&_isEncoded, 1) == 1)
+	{
+		return false;
+	}
+
+	unsigned char checkSum = 0;
+
+	for (int iCnt = 0; iCnt < header._len; ++iCnt)
+	{
+		checkSum += payload[iCnt];
+	}
+
+	char d = checkSum % 256;
+	char p = d ^ (header._randKey + 1);
+	char e = p ^ (PACKET_KEY + 1);
+	header._checkSum = e;
+
+	for (int iCnt = 0; iCnt < header._len; ++iCnt)
+	{
+		d = payload[iCnt];
+		p = d ^ (p + header._randKey + 2 + iCnt);
+		e = p ^ (e + PACKET_KEY + 2 + iCnt);
+		payload[iCnt] = e;
+	}
+
+	return true;
+}
+
+bool SPacket::Decode(NetPacketHeader& header, char* payload)
+{
+	unsigned char checkSum = 0;
+
+	char curE = header._checkSum;
+	char curP = curE ^ (PACKET_KEY + 1);
+	header._checkSum = curP ^ (header._randKey + 1);
+
+	char prevE = curE;
+	char prevP = curP;
+
+	for (int iCnt = 0; iCnt < header._len; ++iCnt)
+	{
+		curE = payload[iCnt];
+		curP = curE ^ (prevE + PACKET_KEY + 2 + iCnt);
+		payload[iCnt] = curP ^ (prevP + header._randKey + 2 + iCnt);
+		checkSum += payload[iCnt];
+
+		prevE = curE;
+		prevP = curP;
+	}
+
+	checkSum = checkSum % 256;
+
+	if (header._checkSum != checkSum)
+	{
+		return false;
+	}
+
+	return true;
+}
 
 SPacket& SPacket::operator=(SPacket& rhs)
 {
@@ -199,11 +262,12 @@ SPacket& SPacket::operator=(SPacket& rhs)
 		delete mBuffer;
 
 		mBuffer = new char[rhs.mCapacity];
-		mPayloadPtr = mBuffer + BUFFER_HEADER_MAX_SIZE;
+		mPayloadPtr = mBuffer + PACKET_HEADER_SIZE;
 		mReadPos = mPayloadPtr;
 		mWritePos = mPayloadPtr;
 		mCapacity = rhs.mCapacity;
 		mSize = rhs.mSize;
+		mHeaderSize = rhs.mHeaderSize;
 	}
 
 	return *this;
@@ -715,3 +779,5 @@ SPacket& SPacket::operator>>(double& data)
 
 	return *this;
 }
+
+ObjectPool<SPacket> SPacket::s_packetPool = ObjectPool<SPacket>(10, false);

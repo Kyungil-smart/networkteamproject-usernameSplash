@@ -56,19 +56,7 @@ void EchoServer::OnRelease(const SessionID sessionId)
 
 void EchoServer::OnRecv(const SessionID sessionId, SPacket* packet)
 {
-	// Todo: Categorize by message type
 
-	SessionID itselfId = sessionId;
-
-	EchoData echoData;
-	(*packet) >> echoData;
-
-	//wprintf(L"%lld\n", echoData);
-
-	SPacket sendPacket;
-	sendPacket << echoData;
-
-	SendPacket(itselfId, &sendPacket);
 }
 
 void EchoServer::OnError(const int errorCode, const wchar_t* errorMsg)
