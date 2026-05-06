@@ -1,6 +1,7 @@
 #pragma once
 
 #define PLAYER_MAX 10000
+#define ROOM_MAX 10000
 
 #define NICKNAME_LEN 20
 #define ROOMNAME_LEN 20

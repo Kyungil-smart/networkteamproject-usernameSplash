@@ -7,6 +7,9 @@
 #define SERVER_ADDRESS L"0.0.0.0"
 #define SERVER_PORT 12001 //11850
 
+#define TOTAL_THREAD 4
+#define RUNNING_THREAD 4
+
 #define SESSION_MAX 18000
 
 #define PACKET_CODE 0x77
