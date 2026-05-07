@@ -6,7 +6,7 @@
 #define NICKNAME_LEN 20
 #define ROOMNAME_LEN 20
 
-enum class ePacketType
+enum class ePacketType : short
 {
 #pragma region OutGameProtocol
 

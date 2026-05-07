@@ -5,6 +5,9 @@
 #include "Job.h"
 
 #include <queue>
+#include <synchapi.h>
+
+#pragma comment(lib, "Synchronization.lib")
 
 using namespace std;
 
@@ -54,4 +57,5 @@ private:
 private:
 	 queue<Job*>* _jobQueue; // job queue
 	 SRWLOCK _jobQueueLock;
+	 CONDITION_VARIABLE _jobQueueCV;
 };
