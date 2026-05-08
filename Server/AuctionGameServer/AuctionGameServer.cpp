@@ -130,61 +130,90 @@ void AuctionGameServer::GetQueuedJobMessages(void)
 
 		if (job->_type == eJobType::SYSTEM)
 		{
-			switch (job->_sysType)
+			if (job->_sysType == eSysType::ACCEPT)
 			{
-			case eSysType::ACCEPT:
+				HandleAccept(job->_sessionId);
+			}
+			else if (job->_sysType == eSysType::RELEASE)
+			{
+				HandleRelease(job->_sessionId);
+			}
+			else if (job->_sysType == eSysType::TIMEOUT)
+			{
+				HandleTimeout();
+			}
+			else if (job->_sysType == eSysType::TERMINATE)
+			{
 				break;
-			case eSysType::RELEASE:
-				break;
-			case eSysType::TIMEOUT:
-				break;
-			case eSysType::TERMINATE:
-				break;
-			default:
+			}
+			else
+			{
 				// Wrong Packet
-				break;
 			}
 		}
 		else if (job->_type == eJobType::CONTENT)
 		{
-			SPacket* packet = job->_packet;
-
-			// Search Player and Update LastRecvTime
-
-			short msgTypeTemp;
-			(*packet) >> msgTypeTemp;
-
-			ePacketType msgType = (ePacketType)msgTypeTemp;
-
-			switch (msgType)
-			{
-			case ePacketType::PACKET_CS_AUCTION_REQ_LOGIN:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_CREATE:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_JOIN:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_LIST:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_READY:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_UNREADY:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_ROOM_EXIT:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_HOST_GAME_START:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_INGAME_LOAD_COMPLETE:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_JOIN_BIDDING:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_BID:
-				break;
-			case ePacketType::PACKET_CS_AUCTION_REQ_QUIT_GAME:
-				break;
-			default:
-				break;
-			}
+			HandleRecv(job->_sessionId, job->_packet);
 		}
+
+		// Todo : Release Job to Job Pool
+		// Job::Free(job);
+	}
+}
+
+void AuctionGameServer::HandleAccept(const SessionID sessionId)
+{
+	// Create Player
+}
+
+void AuctionGameServer::HandleRelease(const SessionID sessionId)
+{
+	// Disconnect Player and Remove Player Object
+}
+
+void AuctionGameServer::HandleTimeout(void)
+{
+	// Check Timeout for All Players
+}
+
+void AuctionGameServer::HandleRecv(const SessionID sessionId, SPacket* packet)
+{
+	// Search Player and Update LastRecvTime
+
+	short msgTypeTemp;
+	(*packet) >> msgTypeTemp;
+
+	// Todo : Find Player by SessionId
+
+	ePacketType msgType = (ePacketType)msgTypeTemp;
+
+	switch (msgType)
+	{
+	case ePacketType::PACKET_CS_AUCTION_REQ_LOGIN:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_CREATE:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_JOIN:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_ROOM_LIST:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_READY:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_UNREADY:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_PLAYER_ROOM_EXIT:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_HOST_GAME_START:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_INGAME_LOAD_COMPLETE:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_JOIN_BIDDING:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_BID:
+		break;
+	case ePacketType::PACKET_CS_AUCTION_REQ_QUIT_GAME:
+		break;
+	default:
+		break;
 	}
 }

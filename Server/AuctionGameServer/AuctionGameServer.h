@@ -43,6 +43,12 @@ private:
 private:
 	void GetQueuedJobMessages(void);
 
+private:
+	void HandleAccept(const SessionID sessionId);
+	void HandleRelease(const SessionID sessionId);
+	void HandleTimeout(void);
+	void HandleRecv(const SessionID sessionId, SPacket* packet);
+
 public:
 	inline bool IsAlive(void) const
 	{
