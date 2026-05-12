@@ -7,8 +7,6 @@
 #include <WinSock2.h>
 #include <Windows.h>
 
-using SessionID = unsigned __int64;
-
 enum class eOverlappedType
 {
 	RECV = 0,

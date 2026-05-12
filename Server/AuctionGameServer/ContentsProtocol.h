@@ -6,6 +6,13 @@
 #define NICKNAME_LEN 20
 #define ROOMNAME_LEN 20
 
+#define MAX_ITEM_TYPES 4
+
+using PlayerID = unsigned __int64;
+using RoomID = unsigned __int64;
+
+using Nickname = wchar_t[NICKNAME_LEN];
+
 enum class ePacketType : short
 {
 #pragma region OutGameProtocol
