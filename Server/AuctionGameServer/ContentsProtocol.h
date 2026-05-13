@@ -6,7 +6,17 @@
 #define NICKNAME_LEN 20
 #define ROOMNAME_LEN 20
 
-#define MAX_ITEM_TYPES 4
+#define MAX_ITEM_TYPES 5
+#define COIN_PROB 23 // 일반 coin 등장 확률(백분율)
+#define JOKER_PROB 8 // Joker 등장 확률(백분율)
+
+// milliseconds 단위
+#define AUCTION_READY_WAITTIME 3000
+#define AUCTION_OPEN_WAITTIME 5000
+#define AUCTION_REGISTRATION_WAITTIME 10000
+#define AUCTION_PROGRESS_WAITTIME 5000
+#define AUCTION_PROGRESS_ADDITIONAL_WAITTIME 3000
+#define AUCTION_FINISHED_WAITTIME 5000
 
 using PlayerID = unsigned __int64;
 using RoomID = unsigned __int64;
@@ -400,6 +410,6 @@ enum class ePacketType : short
 			int ItemType[ItemNum]
 		}
 	*/
-	PACKET_SC_AUCTION_RES_UPDATE_PLAYER_STATE,
+	PACKET_SC_AUCTION_RES_UPDATE_PLAYER_STATE
 #pragma endregion
 };

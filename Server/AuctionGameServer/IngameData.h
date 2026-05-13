@@ -4,6 +4,15 @@
 
 #include "ContentsProtocol.h"
 
+enum class eItem
+{
+	RED = 0,
+	BLUE,
+	YELLOW,
+	GREEN,
+	JOKER
+};
+
 struct IngameData
 {
 
@@ -13,7 +22,7 @@ public:
 		, _item {}
 		, _itemCount(0)
 	{
-
+		
 	}
 
 private:

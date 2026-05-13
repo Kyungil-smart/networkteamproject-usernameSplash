@@ -32,9 +32,9 @@ public :
 		return _ingameData.IsWinner();
 	}
 
-	void AddItem(int index)
+	void AddItem(eItem index)
 	{
-		_ingameData.AddItem(index);
+		_ingameData.AddItem((int)index);
 
 		return;
 	}
