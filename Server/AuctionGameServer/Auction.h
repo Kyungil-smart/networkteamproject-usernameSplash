@@ -36,7 +36,7 @@ public:
 	void RegisterMultiParticipants(const vector<Player*>& participants);
 	
 private:
-	void NoticeParticipants(void) const;
+	int NoticeParticipants(void);
 
 public:
 	bool TryBid(Player* bidPlayer, const int incrementAmount);
