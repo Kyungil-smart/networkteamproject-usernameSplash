@@ -6,6 +6,7 @@ Auction::Auction()
 	, _state(eAuctionState::READY)
 	, _endTick(GetTickCount64() + AUCTION_READY_WAITTIME)
 {
+	// ePacketType::PACKET_SC_AUCTION_RES_ROUND_START;
 }
 
 void Auction::ChooseAuctionItem(void)
@@ -16,6 +17,8 @@ void Auction::ChooseAuctionItem(void)
 	static discrete_distribution<int> dist { {COIN_PROB, COIN_PROB, COIN_PROB, COIN_PROB, JOKER_PROB} };
 
 	_item = (eItem)dist(gen);
+
+	//ePacketType::PACKET_SC_AUCTION_RES_OPEN_ITEM;
 }
 
 void Auction::Update(void)
@@ -45,6 +48,7 @@ void Auction::Update(void)
 		_endTick = GetTickCount64() + AUCTION_FINISHED_WAITTIME;
 		break;
 	case eAuctionState::FINISHED:
+		FinishAuction();
 		break;
 	default:
 		break;
@@ -52,8 +56,27 @@ void Auction::Update(void)
 
 }
 
-void Auction::RegisterParticipants(const vector<Player*>& participants)
+void Auction::RegisterSingleParticipant(Player* player)
 {
+	if (_state != eAuctionState::REGISTRATION)
+	{
+		return;
+	}
+
+	_participants.insert(player);
+
+	//ePacketType::PACKET_SC_AUCTION_RES_JOIN_BIDDING;
+
+	return;
+}
+
+void Auction::RegisterMultiParticipants(const vector<Player*>& participants)
+{
+	if (_state != eAuctionState::REGISTRATION)
+	{
+		return;
+	}
+
 	for (Player* participant : participants)
 	{
 		_participants.insert(participant);
@@ -62,15 +85,33 @@ void Auction::RegisterParticipants(const vector<Player*>& participants)
 	return;
 }
 
+void Auction::NoticeParticipants(void) const
+{
+	for (Player* player : _participants)
+	{
+		// Make Packet
+	}
+	//ePacketType::PACKET_SC_AUCTION_RES_BIDDING_JOINED_PLAYER_LIST;
+	return;
+}
+
+
 bool Auction::TryBid(Player* bidPlayer, const int incrementAmount)
 {
+	if (_state != eAuctionState::PROGRESS)
+	{
+		return;
+	}
+
 	if (_participants.find(bidPlayer) == _participants.end())
 	{
+		//ePacketType::PACKET_SC_AUCTION_RES_BID; // 실패
 		return false;
 	}
 
 	if (bidPlayer == _topBidder)
 	{
+		//ePacketType::PACKET_SC_AUCTION_RES_BID; // 실패
 		return false;
 	}
 
@@ -79,10 +120,13 @@ bool Auction::TryBid(Player* bidPlayer, const int incrementAmount)
 
 	_endTick += GetTickCount64() + AUCTION_PROGRESS_ADDITIONAL_WAITTIME;
 
+	//ePacketType::PACKET_SC_AUCTION_RES_BID; //성공
+	//ePacketType::PACKET_SC_AUCTION_RES_NOTICE_NEW_BID; // 전체공지
+
 	return true;
 }
 
-void Auction::FinishAuction(void)
+void Auction::FinishAuction(void) const
 {
 	//ePacketType::PACKET_SC_AUCTION_RES_END_BIDDING;
 	//ePacketType::PACKET_SC_AUCTION_RES_HANDLE_BID_WINNER

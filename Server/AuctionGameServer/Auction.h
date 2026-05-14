@@ -27,14 +27,22 @@ class Auction
 public:
 	Auction();
 
+private:
 	void ChooseAuctionItem(void);
-
 	void Update(void);
 
-	void RegisterParticipants(const vector<Player*>& participants);
+public:
+	void RegisterSingleParticipant(Player* player);
+	void RegisterMultiParticipants(const vector<Player*>& participants);
+	
+private:
+	void NoticeParticipants(void) const;
+
+public:
 	bool TryBid(Player* bidPlayer, const int incrementAmount);
 
-	void FinishAuction(void);
+private:
+	void FinishAuction(void) const;
 
 private:
 	int _price;
